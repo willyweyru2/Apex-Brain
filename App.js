@@ -1,104 +1,96 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, TouchableOpacity, Text, SafeAreaView, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native'; // Add Platform to your imports
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
-  // 1. STATE: This is the brain of the app. It remembers the score and current target.
   const [score, setScore] = useState(0);
   const [activeTile, setActiveTile] = useState(null);
+  const [highScore, setHighScore] = useState(0);
   const [startTime, setStartTime] = useState(null);
-  const [reactionTime, setReactionTime] = useState(0);
+  const [lastReaction, setLastReaction] = useState(0);
 
+  // Load High Score on startup
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  // 2. FUNCTION: Spawns a new light on the grid
+  const loadData = async () => {
+    const savedScore = await AsyncStorage.getItem('APEX_HIGH_SCORE');
+    if (savedScore) setHighScore(parseInt(savedScore));
+  };
+
   const startChallenge = () => {
     const randomTile = Math.floor(Math.random() * 9);
     setActiveTile(randomTile);
+    setStartTime(Date.now());
   };
-  
 
-  // 3. FUNCTION: Handles when the user taps a tile
-  const [timer, setTimer] = useState(1000); // 1 second to start
-
-  const handleTap = (index) => {
+  const handleTap = async (index) => {
     if (index === activeTile) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      setScore(score + 1);
+      // Calculate speed
+      const reaction = Date.now() - startTime;
+      setLastReaction(reaction);
+
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
       
-      // ADAPTIVE DIFFICULTY: Every 5 points, the game gets 10% faster
-      if (score > 0 && score % 5 === 0) {
-        setTimer(prev => prev * 0.9);
+      const nextScore = score + 1;
+      setScore(nextScore);
+
+      // Save new high score if beaten
+      if (nextScore > highScore) {
+        setHighScore(nextScore);
+        await AsyncStorage.setItem('APEX_HIGH_SCORE', nextScore.toString());
       }
       
       startChallenge();
     } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      alert(`Session Over. Neural Score: ${score}`);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
       setScore(0);
-      setTimer(1000);
       setActiveTile(null);
     }
-    if (index === activeTile) {
-  // Only vibrate if we are NOT on the web
-  if (Platform.OS !== 'web') {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }
-  setScore(score + 1);
-  startChallenge();
-}
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>APEX BRAIN</Text>
-      <Text style={styles.score}>NEURAL SCORE: {score}</Text>
+      <View style={styles.header}>
+        <Text style={styles.label}>SPEED: {lastReaction}ms</Text>
+        <Text style={styles.label}>BEST: {highScore}</Text>
+      </View>
+
+      <Text style={styles.score}>{score}</Text>
 
       <View style={styles.grid}>
         {[...Array(9)].map((_, i) => (
           <TouchableOpacity 
             key={i}
             onPress={() => handleTap(i)}
-            style={[
-              styles.tile, 
-              activeTile === i ? styles.activeTile : null
-            ]} 
+            style={[styles.tile, activeTile === i ? styles.activeTile : null]} 
           />
         ))}
       </View>
 
       {!activeTile && (
         <TouchableOpacity style={styles.button} onPress={startChallenge}>
-          <Text style={styles.buttonText}>BEGIN SESSION</Text>
+          <Text style={styles.buttonText}>OPTIMIZE BRAIN</Text>
         </TouchableOpacity>
       )}
     </SafeAreaView>
   );
 }
-const startChallenge = () => {
-  const randomTile = Math.floor(Math.random() * 9);
-  setActiveTile(randomTile);
-  setStartTime(Date.now()); // Start the clock
-};
-
-const handleTap = (index) => {
-  if (index === activeTile) {
-    const timeTaken = Date.now() - startTime;
-    setReactionTime(timeTaken);
-    // ... rest of your logic
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#fff', fontSize: 12, letterSpacing: 5, marginBottom: 10 },
-  score: { color: '#00D4FF', fontSize: 32, fontWeight: '900', marginBottom: 40 },
-  grid: { width: 300, height: 300, flexDirection: 'row', flexWrap: 'wrap' },
-  tile: { width: 90, height: 90, margin: 5, backgroundColor: '#111', borderRadius: 5, borderOuterWidth: 1, borderColor: '#222' },
-  activeTile: { backgroundColor: '#00D4FF' },
-  button: { marginTop: 50, padding: 20, borderColor: '#00D4FF', borderWidth: 1, borderRadius: 5 },
-  buttonText: { color: '#00D4FF', fontWeight: 'bold' }
+  container: { flex: 1, backgroundColor: '#050505', alignItems: 'center', justifyContent: 'center' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', width: '80%', marginBottom: 20 },
+  label: { color: '#666', fontSize: 12, letterSpacing: 1 },
+  score: { color: '#00D4FF', fontSize: 80, fontWeight: '100', marginBottom: 20 },
+  grid: { width: 320, height: 320, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  tile: { width: 95, height: 95, margin: 5, backgroundColor: '#111', borderRadius: 15, borderWidth: 1, borderColor: '#222' },
+  activeTile: { backgroundColor: '#00D4FF', shadowColor: '#00D4FF', shadowRadius: 20, shadowOpacity: 0.8 },
+  button: { marginTop: 50, paddingHorizontal: 40, paddingVertical: 15, borderRadius: 30, backgroundColor: '#00D4FF' },
+  buttonText: { color: '#000', fontWeight: '900', letterSpacing: 1 }
 });
-style={[
-  styles.tile, 
-  activeTile === i ? styles.activeTile : null,
-  flashTile === i ? { backgroundColor: '#FFD700' } : null // Golden flash
-]}
