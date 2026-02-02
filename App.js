@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableOpacity, Text, SafeAreaView } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native'; // Add Platform to your imports
 
 export default function App() {
   // 1. STATE: This is the brain of the app. It remembers the score and current target.
   const [score, setScore] = useState(0);
   const [activeTile, setActiveTile] = useState(null);
+  const [startTime, setStartTime] = useState(null);
+  const [reactionTime, setReactionTime] = useState(0);
+
 
   // 2. FUNCTION: Spawns a new light on the grid
   const startChallenge = () => {
     const randomTile = Math.floor(Math.random() * 9);
     setActiveTile(randomTile);
   };
+  
 
   // 3. FUNCTION: Handles when the user taps a tile
   const [timer, setTimer] = useState(1000); // 1 second to start
@@ -34,6 +39,14 @@ export default function App() {
       setTimer(1000);
       setActiveTile(null);
     }
+    if (index === activeTile) {
+  // Only vibrate if we are NOT on the web
+  if (Platform.OS !== 'web') {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }
+  setScore(score + 1);
+  startChallenge();
+}
   };
 
   return (
@@ -62,6 +75,17 @@ export default function App() {
     </SafeAreaView>
   );
 }
+const startChallenge = () => {
+  const randomTile = Math.floor(Math.random() * 9);
+  setActiveTile(randomTile);
+  setStartTime(Date.now()); // Start the clock
+};
+
+const handleTap = (index) => {
+  if (index === activeTile) {
+    const timeTaken = Date.now() - startTime;
+    setReactionTime(timeTaken);
+    // ... rest of your logic
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
@@ -73,3 +97,8 @@ const styles = StyleSheet.create({
   button: { marginTop: 50, padding: 20, borderColor: '#00D4FF', borderWidth: 1, borderRadius: 5 },
   buttonText: { color: '#00D4FF', fontWeight: 'bold' }
 });
+style={[
+  styles.tile, 
+  activeTile === i ? styles.activeTile : null,
+  flashTile === i ? { backgroundColor: '#FFD700' } : null // Golden flash
+]}
