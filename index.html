@@ -1,58 +1,146 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Apex Brain</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Apex Brain | Cognitive Lab</title>
+
 <style>
 body {
-  background: black;
-  color: white;
-  text-align: center;
-  font-family: Arial;
+  margin: 0;
+  font-family: system-ui;
+  background:#0d0f14;
+  color:white;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
 }
-#box {
-  width: 150px;
-  height: 150px;
-  background: red;
-  display: none;
-  margin: 100px auto;
-  cursor: pointer;
+
+h1 { margin-top:20px; }
+
+.rank { opacity:0.7; margin-bottom:20px; }
+
+.grid {
+  display:grid;
+  grid-template-columns:repeat(3,100px);
+  gap:12px;
 }
+
+.tile {
+  width:100px;
+  height:100px;
+  background:#1c2230;
+  border-radius:12px;
+  cursor:pointer;
+}
+
+.tile.active { background:#00ffc8; }
+.tile.red { background:#ff2f4f; }
+
+.stats { margin-top:20px; text-align:center; }
+
 button {
-  padding: 15px 30px;
-  font-size: 18px;
+  margin-top:20px;
+  padding:12px 25px;
+  background:#00ffc8;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.leaderboard {
+  margin-top:20px;
+  font-size:13px;
+  opacity:0.8;
 }
 </style>
 </head>
 
 <body>
+
 <h1>🧠 Apex Brain</h1>
-<p id="status">Click Start</p>
+<div class="rank" id="rankDisplay">Rank: Novice</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="stats">
+  <div>Reaction: <span id="reaction">0</span> ms</div>
+  <div>Best: <span id="best">0</span> ms</div>
+  <div>Accuracy: <span id="accuracy">100</span>%</div>
+</div>
 
 <button onclick="startGame()">Start Neural Pulse</button>
-<div id="box"></div>
+
+<div class="leaderboard">
+  <h3>Local Leaderboard</h3>
+  <div id="leaderboardList"></div>
+</div>
 
 <script>
-let startTime;
+const grid = document.getElementById("grid");
+const reactionDisplay = document.getElementById("reaction");
+const bestDisplay = document.getElementById("best");
+const accuracyDisplay = document.getElementById("accuracy");
+const rankDisplay = document.getElementById("rankDisplay");
 
-function startGame() {
-  document.getElementById("status").innerText = "Wait for green...";
-  document.getElementById("box").style.display = "none";
+let activeIndex = null;
+let startTime = 0;
+let totalClicks = 0;
+let correctClicks = 0;
+let bestTime = localStorage.getItem("apexBest") || 9999;
+bestDisplay.textContent = bestTime;
 
-  setTimeout(showBox, Math.random() * 3000 + 2000);
+// Build grid
+for(let i=0;i<9;i++){
+  const tile=document.createElement("div");
+  tile.className="tile";
+  tile.onclick=()=>clickTile(i);
+  grid.appendChild(tile);
 }
 
-function showBox() {
-  let box = document.getElementById("box");
-  box.style.background = "lime";
-  box.style.display = "block";
-  startTime = new Date().getTime();
+function startGame(){
+  totalClicks=0;
+  correctClicks=0;
+  nextPulse();
 }
 
-document.getElementById("box").onclick = function() {
-  let reaction = new Date().getTime() - startTime;
-  document.getElementById("status").innerText = "Reaction Time: " + reaction + " ms";
-  this.style.display = "none";
-};
+function nextPulse(){
+  document.querySelectorAll(".tile").forEach(t=>t.classList.remove("active","red"));
+  activeIndex = Math.floor(Math.random()*9);
+  grid.children[activeIndex].classList.add("active");
+  startTime = performance.now();
+}
+
+function clickTile(i){
+  totalClicks++;
+  if(i===activeIndex){
+    correctClicks++;
+    const reaction = Math.floor(performance.now()-startTime);
+    reactionDisplay.textContent=reaction;
+
+    if(reaction < bestTime){
+      bestTime = reaction;
+      localStorage.setItem("apexBest",reaction);
+      bestDisplay.textContent=reaction;
+    }
+
+    updateRank();
+    setTimeout(nextPulse,400);
+  } else {
+    grid.children[i].classList.add("red");
+  }
+
+  accuracyDisplay.textContent = Math.floor((correctClicks/totalClicks)*100);
+}
+
+function updateRank(){
+  if(bestTime<200) rankDisplay.textContent="Rank: Apex Mind";
+  else if(bestTime<300) rankDisplay.textContent="Rank: Elite";
+  else if(bestTime<400) rankDisplay.textContent="Rank: Advanced";
+  else rankDisplay.textContent="Rank: Novice";
+}
 </script>
+
 </body>
 </html>
