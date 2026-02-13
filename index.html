@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Apex Brain | High-Performance Cognitive Lab</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #0d0f14;
+        color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    h1 {
+        margin-top: 20px;
+        font-weight: 600;
+        letter-spacing: 1px;
+    }
+
+    .rank {
+        margin: 5px 0 20px 0;
+        font-size: 14px;
+        opacity: 0.8;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 100px);
+        grid-template-rows: repeat(3, 100px);
+        gap: 10px;
+    }
+
+    .tile {
+        background: #1c2230;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: 0.08s ease;
+    }
+
+    .tile.active {
+        background: #00ffc8;
+    }
+
+    .tile.red {
+        background: #ff2f4f;
+    }
+
+    .stats {
+        margin-top: 20px;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: #00ffc8;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .leaderboard {
+        margin-top: 20px;
+        font-size: 13px;
+        opacity: 0.8;
+    }
+</style>
+</head>
+<body>
+
+<h1>🧠 Apex Brain</h1>
+<div class="rank" id="rankDisplay">Rank: Novice</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="stats">
+    <div>Reaction: <span id="reaction">0</span> ms</div>
+    <div>Best: <span id="best">0</span> ms</div>
+    <div>Accuracy: <span id="accuracy">100</span>%</div>
+</div>
+
+<button onclick="startGame()">Start Neural Pulse</button>
+
+<div class="leaderboard">
+    <h3>Local Leaderboard</h3>
+    <div id="leaderboardList"></div>
+</div>
+
+<script>
+const grid = document.getElementById("grid");
+const reactionDisplay = document.getElementById("reaction");
+const bestDisplay = document.getElementById("best");
+const accuracyDisplay = document.getElementById("accuracy");
+const rankDisplay = document.getElementById("rankDisplay");
+const leaderboardList = document.getElementById("leaderboardList");
+
+let activeIndex = null;
+let redIndex = null;
+let startTime = 0;
+let totalClicks = 0;
+let correctClicks = 0;
+let bestTime = localStorage.getItem("apexBest") || 0;
+let ghostTime = localStorage.getItem("apexGhost") || null;
+
+bestDisplay.textContent = bestTime;
+
+function createGrid() {
+    grid.innerHTML = "";
+    for (let i = 0; i < 9; i++) {
+        const tile = document.createElement("div")
